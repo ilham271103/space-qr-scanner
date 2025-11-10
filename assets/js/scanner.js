@@ -22,13 +22,14 @@ function startScanner() {
         "Mengalihkan ke login Mikrotik..."
       ], "welcomeMessage", 700);
 
-      setTimeout(() => {
-        const mikrotikHost = "192.168.88.1"; // GANTI kalau perlu
-        window.location.href = `http://${mikrotikHost}/login?username=${decodedText}&password=qr`;
-      }, 2000);
+    setTimeout(() => {
+  const mikrotikHost = window.location.hostname; // AUTO DETECT
+  window.location.href = `http://${mikrotikHost}/login?username=${decodedText}&password=qr`;
+}, 2000);
 
       qrReader.stop();
     },
     (errorMessage) => {}
   );
 }
+
