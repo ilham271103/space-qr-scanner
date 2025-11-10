@@ -22,24 +22,32 @@ function startScanner() {
         "Mengalihkan ke login Mikrotik..."
       ], "welcomeMessage", 700);
 
-      setTimeout(() => {
-        let mikrotikHost = null;
+setTimeout(() => {
+  let mikrotikHost = null;
 
-        if (document.referrer) {
-          try {
-            mikrotikHost = new URL(document.referrer).hostname;
-          } catch(e){}
-        }
+  // Ambil IP router dari login sebelumnya
+  if (document.referrer) {
+    try {
+      mikrotikHost = new URL(document.referrer).hostname;
+    } catch(e){}
+  }
 
-        if (!mikrotikHost || mikrotikHost === "ilham271103.github.io") {
-          mikrotikHost = location.hostname || "192.168.88.1";
-        }
+  // Fallback kalau dari luar
+  if (!mikrotikHost || mikrotikHost === "ilham271103.github.io") {
+    mikrotikHost = location.hostname || "192.168.88.1";
+  }
 
-        window.location.href = `http://${mikrotikHost}/login?username=${encodeURIComponent(decodedText)}&password=qr`;
-      }, 2000);
+  // Bersihkan hasil scan
+  const user = decodedText.trim();
+
+  // Kirim ke Mikrotik
+  window.location.href = `http://${mikrotikHost}/login?username=${encodeURIComponent(user)}&password=qr`;
+}, 2000);
+
 
       qrReader.stop();
     },
     () => {}
   );
 }
+
