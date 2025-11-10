@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QR Scanner Hotspot</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <script src="assets/js/html5-qrcode.min.js"></script>
+</head>
+<body>
+  <div class="sky"></div>
+  <div class="planet"></div>
+  <div class="planet2"></div>
+  <div class="rocket"></div>
+
+  <div class="card">
+    <div class="top-section">
+      <div class="border"></div>
+      <div class="message-container">
+        <div id="welcomeMessage"></div>
+      </div>
+      <div id="qr-reader" style="width: 250px; margin: 0 auto;"></div>
+    </div>
+    <div class="bottom-section">
+      <span class="title">Scan QR untuk login</span>
+    </div>
+  </div>
+
+  <script src="assets/js/scanner.js"></script>
+  <script>
+    window.onload = () => {
+      startScanner();
+      bubbleChat(["📷 QR scanner aktif", "Arahkan kamera ke kode QR Anda"], "welcomeMessage", 700);
+    };
+  </script>
+</body>
+</html>
