@@ -65,7 +65,7 @@ function startScanner() {
         }
 
         const safeVoucher = encodeURIComponent(voucher);
-        const url = `http://${mikrotikHost}/login?username=${safeVoucher}&password=qr`;
+     const url = `http://${mikrotikHost}/login?username=${safeVoucher}&password=${safeVoucher}`;
 
         // redirect
         window.location.href = url;
@@ -81,3 +81,4 @@ function startScanner() {
     bubbleChat(["⚠️ Gagal mengaktifkan kamera."], "welcomeMessage", 600);
   });
 }
+
