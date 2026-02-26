@@ -28,6 +28,7 @@
       <button id="startBtn">Start</button>
       <button id="stopBtn" class="ghost">Stop</button>
     </div>
+    <div id="detectedHost" class="small" style="margin-bottom:10px"></div>
 
     <div id="reader">Klik "Start" untuk mengaktifkan kamera</div>
 
@@ -68,6 +69,30 @@
 
     let html5QrcodeScanner = null;
 
+    // ambil param query helper
+    function getQueryParam(name) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(name);
+    }
+
+    // jika dipanggil dari captive portal, operator Mikrotik bisa menambahkan
+    // ?host=<host_or_url> pada link ke halaman scanner — kita otomatis
+    // mengisi field loginUrl agar pengguna tidak perlu mengetik.
+    function tryAutoFillHost() {
+      const hostParam = getQueryParam('host') || getQueryParam('mikrotik') || getQueryParam('login');
+      if (!hostParam) return null;
+      const input = loginUrlInput;
+      // jika param hanya hostname (tanpa skema), tambahkan http://
+      if (!/^https?:\/\//i.test(hostParam)) {
+        input.value = 'http://' + hostParam;
+      } else {
+        input.value = hostParam;
+      }
+      const detected = document.getElementById('detectedHost');
+      detected.textContent = 'Terhubung ke: ' + input.value + ' (otomatis terisi dari parameter host)';
+      return input.value;
+    }
+
     function showResult(code) {
       scannedText.textContent = code;
       resultArea.style.display = '';
@@ -81,6 +106,8 @@
     }
 
     startBtn.addEventListener('click', async () => {
+      // jika pengguna belum mengisi loginUrl tapi ada param host, autopopulate
+      if (!loginUrlInput.value) tryAutoFillHost();
       resultArea.style.display = 'none';
       if (!html5QrcodeScanner) {
         html5QrcodeScanner = new Html5Qrcode("reader");
