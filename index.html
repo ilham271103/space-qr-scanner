@@ -1,37 +1,152 @@
-<!DOCTYPE html>
-<html lang="id">
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>QR Scanner Hotspot</title>
-  <link rel="stylesheet" href="assets/css/style.css" />
-  <script src="assets/js/html5-qrcode.min.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Space QR Scanner</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;margin:0;padding:16px;background:#0b1220;color:#e6eef8}
+    .card{max-width:720px;margin:24px auto;padding:20px;background:#0f1724;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,.6)}
+    h1{margin:0 0 12px;font-size:20px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+    input[type=text]{flex:1;padding:8px;border-radius:6px;border:1px solid #263244;background:#071022;color:#e6eef8}
+    button{padding:8px 12px;border-radius:6px;border:none;background:#2b7cff;color:white;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid #3a4a63}
+    #reader{width:100%;min-height:300px;background:#000;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#9aa7c7}
+    .result{margin-top:12px;background:#081226;padding:10px;border-radius:6px;color:#cfe4ff}
+    .small{font-size:13px;color:#9aa7c7}
+    a.btn-link{color:#fff;text-decoration:none}
+  </style>
 </head>
 <body>
-  <div class="sky"></div>
-  <div class="planet"></div>
-  <div class="planet2"></div>
-  <div class="rocket"></div>
-
   <div class="card">
-    <div class="top-section">
-      <div class="border"></div>
-      <div class="message-container">
-        <div id="welcomeMessage"></div>
-      </div>
-      <div id="qr-reader" style="width: 250px; margin: 0 auto;"></div>
+    <h1>Space QR Scanner (GitHub Pages)</h1>
+    <p class="small">Halaman ini menggunakan kamera browser untuk memindai QR. GitHub Pages menyediakan HTTPS sehingga getUserMedia boleh bekerja. Jika kamera tidak tersedia, gunakan input manual.</p>
+
+    <div class="controls">
+      <input id="loginUrl" type="text" placeholder="Masukkan URL halaman login (contoh: http://10.0.0.1/login)" value="" />
+      <button id="startBtn">Start</button>
+      <button id="stopBtn" class="ghost">Stop</button>
     </div>
-    <div class="bottom-section">
-      <span class="title">Scan QR untuk login</span>
+
+    <div id="reader">Klik "Start" untuk mengaktifkan kamera</div>
+
+    <div class="result" id="resultArea" style="display:none;">
+      <div><strong>Hasil scan:</strong> <span id="scannedText"></span></div>
+      <div style="margin-top:8px;display:flex;gap:8px;margin-bottom:6px;">
+        <button id="copyBtn">Salin</button>
+        <button id="gotoBtn">Buka ke Halaman Login</button>
+      </div>
+      <div class="small">Jika tombol "Buka ke Halaman Login" tidak cocok, salin kode dan tempel ke form login lokal Anda.</div>
+    </div>
+
+    <hr style="border-color:#162033;margin:16px 0" />
+
+    <div>
+      <strong>Masukkan kode secara manual</strong>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <input id="manualCode" type="text" placeholder="Masukkan kode voucher" />
+        <button id="manualGo">Gunakan kode</button>
+      </div>
+      <div class="small" style="margin-top:10px">Catatan: tombol "Buka ke Halaman Login" akan menambahkan parameter `username` dan `password` ke URL, keduanya diisi kode hasil scan (sesuaikan jika sistem Anda berbeda).</div>
     </div>
   </div>
 
-  <script src="assets/js/scanner.js"></script>
+  <!-- html5-qrcode from CDN -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
   <script>
-    window.onload = () => {
-      startScanner();
-      bubbleChat(["📷 QR scanner aktif", "Arahkan kamera ke kode QR Anda"], "welcomeMessage", 700);
-    };
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const reader = document.getElementById('reader');
+    const resultArea = document.getElementById('resultArea');
+    const scannedText = document.getElementById('scannedText');
+    const copyBtn = document.getElementById('copyBtn');
+    const gotoBtn = document.getElementById('gotoBtn');
+    const loginUrlInput = document.getElementById('loginUrl');
+    const manualCode = document.getElementById('manualCode');
+    const manualGo = document.getElementById('manualGo');
+
+    let html5QrcodeScanner = null;
+
+    function showResult(code) {
+      scannedText.textContent = code;
+      resultArea.style.display = '';
+    }
+
+    function buildLoginLink(code) {
+      const base = loginUrlInput.value.trim();
+      if (!base) return null;
+      const sep = base.includes('?') ? '&' : '?';
+      return base + sep + 'username=' + encodeURIComponent(code) + '&password=' + encodeURIComponent(code);
+    }
+
+    startBtn.addEventListener('click', async () => {
+      resultArea.style.display = 'none';
+      if (!html5QrcodeScanner) {
+        html5QrcodeScanner = new Html5Qrcode("reader");
+      }
+      try {
+        await Html5Qrcode.getCameras(); // will throw if no camera or blocked
+      } catch (err) {
+        reader.textContent = 'Tidak dapat mengakses kamera: ' + err;
+        return;
+      }
+
+      const config = { fps: 10, qrbox: 250 };
+      html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText, decodedResult) => {
+          // success
+          showResult(decodedText);
+          // stop camera after first read to avoid multiple triggers
+          html5QrcodeScanner.stop().then(() => {
+            // camera stopped
+          }).catch(()=>{});
+        },
+        (errorMessage) => {
+          // parse errors or scanning in progress
+        }
+      ).catch(err => {
+        reader.textContent = 'Gagal memulai kamera: ' + err;
+      });
+    });
+
+    stopBtn.addEventListener('click', () => {
+      if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => {
+          reader.textContent = 'Kamera dihentikan';
+        }).catch(()=>{});
+      }
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      const code = scannedText.textContent;
+      try {
+        await navigator.clipboard.writeText(code);
+        copyBtn.textContent = 'Disalin!';
+        setTimeout(()=> copyBtn.textContent = 'Salin', 1500);
+      } catch (e) {
+        alert('Salin gagal: ' + e);
+      }
+    });
+
+    gotoBtn.addEventListener('click', () => {
+      const code = scannedText.textContent;
+      const url = buildLoginLink(code);
+      if (!url) { alert('Masukkan URL halaman login terlebih dahulu.'); return; }
+      // buka di tab baru supaya captive portal tetap ada
+      window.open(url, '_blank');
+    });
+
+    manualGo.addEventListener('click', () => {
+      const code = manualCode.value.trim();
+      if (!code) return alert('Masukkan kode');
+      showResult(code);
+      const url = buildLoginLink(code);
+      if (!url) { alert('Masukkan URL halaman login terlebih dahulu.'); return; }
+      window.open(url, '_blank');
+    });
   </script>
 </body>
 </html>
