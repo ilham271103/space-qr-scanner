@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QR Scanner - Mikrotik Login</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="stylesheet" href="assets/css/fontawesome-free-7.1.0-web/css/all.min.css" />
+  <script src="assets/js/html5-qrcode.min.js"></script>
+</head>
+<body>
+  <div class="sky"></div>
+  <div class="planet"></div>
+  <div class="planet2"></div>
+  <div class="rocket"></div>
+
+  <!-- Settings Button -->
+  <button id="settingsBtn" class="settings-btn" title="Info" onclick="showInfo()">
+    <i class="fas fa-info-circle"></i>
+  </button>
+
+  <!-- Info Modal -->
+  <div id="infoModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeInfo()">&times;</span>
+      <h2>Info</h2>
+      <div class="info-content">
+        <p><strong>Format QR Code:</strong></p>
+        <ul style="margin-left: 15px; color: #a0aec0;">
+          <li><code>username:password</code></li>
+          <li>atau hanya <code>username</code></li>
+          <li>JSON format: <code>{"username":"user","password":"pass"}</code></li>
+        </ul>
+        <p style="margin-top: 15px;"><strong>Redirect Mode:</strong></p>
+        <p style="color: #a0aec0; font-size: 13px;">Parameter <code>dst</code> wajib ada untuk mengirim credential ke login page.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="top-section">
+      <div class="border"></div>
+      <div class="message-container">
+        <div id="welcomeMessage"></div>
+      </div>
+      <div id="qr-reader" style="width: 250px; margin: 0 auto;"></div>
+    </div>
+    <div class="bottom-section">
+      <span class="title">Scan QR untuk login Mikrotik</span>
+      <button id="retryBtn" class="retry-btn" onclick="retryScanner()" style="display: none;">
+        <i class="fas fa-redo"></i> Retry
+      </button>
+    </div>
+  </div>
+
+  <script src="assets/js/scanner.js"></script>
+  <script>
+    // Info Modal Functions
+    function showInfo() {
+      document.getElementById("infoModal").style.display = "block";
+    }
+    
+    function closeInfo() {
+      document.getElementById("infoModal").style.display = "none";
+    }
+    
+    window.addEventListener("click", (event) => {
+      const modal = document.getElementById("infoModal");
+      if (event.target == modal) {
+        modal.style.display = "none";
+      }
+    });
+
+    window.onload = () => {
+      showUrlInfo();
+      startScanner();
+      const urlParams = new URLSearchParams(window.location.search);
+      const dstUrl = urlParams.get("dst");
+      
+      let messages = [
+        "📷 QR scanner aktif",
+        "Mode: Login dengan QR Code"
+      ];
+      
+      if (dstUrl) {
+        messages.push("↩️ Redirect ke login page");
+      }
+      
+      messages.push("Arahkan kamera ke kode QR");
+      bubbleChat(messages, "welcomeMessage", 700);
+    };
+  </script>
+</body>
+</html>
