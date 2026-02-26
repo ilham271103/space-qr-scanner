@@ -9,12 +9,12 @@ QR Code scanner halaman yang di-design khusus untuk integrasi dengan login page 
 
 ```
 Mikrotik Login Page 
-    ↓ (redirect + POST)
+    ↓ (redirect dengan ?dst=URL)
 QR Scanner Page (di GitHub Pages)
     ↓ (scan QR)
-Verify Credential
-    ↓ (POST form)
-Mikrotik Login Page (handle login)
+Parse Credential
+    ↓ (GET redirect dengan query param)
+Mikrotik Login Page (receive & process)
     ↓
 Mikrotik Dashboard / Redirect URL
 ```
@@ -104,32 +104,42 @@ admin
 
 ## 📤 Data yang Dikirim ke Login Page
 
-Setelah scan, scanner mengirim POST request ke URL yang ada di parameter `dst`:
+Setelah scan, scanner melakukan redirect ke URL dengan query parameter:
 
 ```
-Method: POST
-Content-Type: application/x-www-form-urlencoded
-
-Body:
-  qr_username: admin
-  qr_password: password123
-  mode: qr
-  qr_data: {JSON string dengan detail}
+GET /login.php?qr_username=admin&qr_password=password123&mode=qr&qr_timestamp=...&qr_source=scanner
 ```
+
+**Parameter yang dikirim:**
+
+| Parameter | Contoh | Keterangan |
+|-----------|--------|-----------|
+| `qr_username` | `admin` | Username dari QR code |
+| `qr_password` | `password123` | Password dari QR code |
+| `mode` | `qr` | Mode login (always "qr") |
+| `qr_timestamp` | `2024-02-26T...` | Timestamp scan |
+| `qr_source` | `scanner` | Sumber scan |
 
 ### Contoh Handle di Login Page (PHP):
 
 ```php
 <?php
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['mode']) && $_POST['mode'] === 'qr') {
-        // QR Mode
-        $username = $_POST['qr_username'] ?? '';
-        $password = $_POST['qr_password'] ?? '';
-        $qr_data = json_decode($_POST['qr_data'] ?? '{}', true);
-        
-        // Handle login
-        loginUser($username, $password, 'qr');
+if (isset($_GET['mode']) && $_GET['mode'] === 'qr') {
+    // QR Mode
+    $username = $_GET['qr_username'] ?? '';
+    $password = $_GET['qr_password'] ?? '';
+    $timestamp = $_GET['qr_timestamp'] ?? '';
+    
+    // Handle login
+    $login_result = loginUser($username, $password, 'qr');
+    
+    if ($login_result['success']) {
+        $_SESSION['logged_in'] = true;
+        $_SESSION['username'] = $username;
+        $_SESSION['login_mode'] = 'qr';
+        header("Location: /admin");
+    } else {
+        $error = "Login gagal";
     }
 }
 ?>

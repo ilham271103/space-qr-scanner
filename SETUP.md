@@ -2,7 +2,28 @@
 
 Panduan lengkap untuk deploy QR Scanner di GitHub Pages dan integrasi dengan login page Mikrotik.
 
-## 🚀 Quick Start - 5 Menit
+## � Method Transmisi Data
+
+**Scanner ini menggunakan GET method (Query Parameter) untuk mengirim hasil scan.**
+
+```
+Scan QR → Redirect dengan URL Parameter → Login Page Process
+```
+
+**Keuntungan:**
+- ✅ Simple, tanpa need CORS configuration
+- ✅ No server backend diperlukan
+- ✅ Kompatibel semua browser
+- ✅ No form submission complexity
+
+**Format URL:**
+```
+https://login-page.com/login?qr_username=admin&qr_password=pass123&mode=qr
+```
+
+---
+
+## �🚀 Quick Start - 5 Menit
 
 ### Step 1: Fork/Clone Repository
 
@@ -44,6 +65,12 @@ Di halaman login Mikrotik Anda, tambahkan button untuk redirect ke scanner:
 https://your-username.github.io/scanner-qr/?dst=YOUR_LOGIN_PAGE_URL
 ```
 
+Hasil scan akan di-redirect dengan format:
+
+```
+YOUR_LOGIN_PAGE_URL?qr_username=USERNAME&qr_password=PASSWORD&mode=qr&...
+```
+
 Contoh lengkap:
 
 ```html
@@ -63,51 +90,53 @@ Contoh lengkap:
 </a>
 ```
 
+**Data akan dikirim sebagai query parameter (GET request):**
+
+```
+http://localhost:8090/login.php?
+  qr_username=admin&
+  qr_password=password123&
+  mode=qr&
+  qr_timestamp=2024-02-26T10:30:00Z&
+  qr_source=scanner
+```
+
 ## 🔐 Production Setup
 
 ### Checklist Keamanan
 
 - [ ] **Use HTTPS** - GitHub Pages automatically HTTPS
-- [ ] **CORS Configuration** - Login page perlu accept POST dari GitHub domain
+- [ ] **Validate Input** - Login page perlu validate credential format
+- [ ] **URL Encoding** - Pastikan special character di-encode dengan proper
 - [ ] **Rate Limiting** - Implement di login page
-- [ ] **Input Validation** - Validate credential format
 - [ ] **Session Management** - Proper timeout handling
+- [ ] **Timestamp Validation** - Optional: check jangan terlalu old
 
-### CORS Setup (di Login Page)
+### URL Encoding Note
 
-Jika login page berbeda domain dengan user (yang scan QR), perlu CORS:
+Query parameter akan di-encode otomatis oleh browser. Jika password mengandung special character (`:`, `&`, `=`, dll), akan di-encode sebagai:
 
-```php
-<?php
-// Di PHP login page Anda
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-
-// Handle preflight
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-?>
+```
+: = %3A
+& = %26
+= = %3D
+space = %20
 ```
 
-### Atau lebih ketat (recommended):
+Login page harus decode dengan `urldecode()` atau `decodeURIComponent()`.
+
+### Contoh Handling di PHP:
 
 ```php
 <?php
-$allowed_origins = [
-    'https://your-username.github.io',
-    'http://localhost:3000',
-    'http://localhost:8000'
-];
-
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-
-if (in_array($origin, $allowed_origins)) {
-    header("Access-Control-Allow-Origin: $origin");
-    header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
-    header("Access-Control-Allow-Headers: Content-Type");
+if (isset($_GET['mode']) && $_GET['mode'] === 'qr') {
+    // Automatic decoding by PHP
+    $username = $_GET['qr_username'] ?? '';      // Automatically decoded
+    $password = $_GET['qr_password'] ?? '';      // Automatically decoded
+    
+    // Gunakan langsung, sudah di-decode
+    echo "Username: $username";
+    echo "Password: $password";
 }
 ?>
 ```
@@ -201,16 +230,18 @@ TIMEOUT_REDIRECT=5000
 - ✅ Check console untuk error message
 
 ### Redirect tidak bekerja
-- ✅ Verify parameter `dst` ada
-- ✅ Check CORS error di console
-- ✅ Pastikan login page bisa menerima POST
-- ✅ Check form data di Network tab
+- ✅ Verify parameter `dst` ada di URL
+- ✅ Verify format URL di parameter `dst` benar (dengan http:// atau https://)
+- ✅ Check browser console untuk error message
+- ✅ Check Network tab untuk request redirect
+- ✅ Pastikan login page bisa receive GET parameter
 
-### Form POST tidak terima di login page
-```javascript
-// Debug di browser console:
-console.log("Form data:", new FormData());
-console.log("Return URL:", urlParams.dst);
+### Login page tidak terima query parameter
+```php
+// Debug di PHP login page:
+var_dump($_GET);  // Lihat semua parameter yang diterima
+echo $_GET['qr_username'] ?? 'Username tidak ada';
+echo $_GET['qr_password'] ?? 'Password tidak ada';
 ```
 
 ## 📊 Performance Optimization
